@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fitness Buddy AI — Dashboard</title>
+    <!-- Modern Fonts & Dashboard Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Markdown Parser so lists and bold text look ultra-sharp -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <style>
+        :root {
+            --bg-main: #0f172a;
+            --bg-sidebar: #1e293b;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --bubble-user: #3b82f6;
+            --bubble-bot: #334155;
+            --border: #334155;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background: var(--bg-main); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
+
+        /* App Layout Dashboard Sidebar */
+        aside { width: 260px; background: var(--bg-sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; justify-content: space-between; padding: 24px 20px; }
+        .brand { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700; color: var(--text-main); margin-bottom: 35px; }
+        .brand i { color: var(--accent); font-size: 22px; }
+        .nav-group { display: flex; flex-direction: column; gap: 8px; }
+        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px; color: var(--text-muted); text-decoration: none; border-radius: 8px; font-size: 14px; font-weight: 500; transition: all 0.2s ease; }
+        .nav-item:hover, .nav-item.active { background: #334155; color: var(--text-main); }
+        .nav-item.active i { color: var(--accent); }
+        .user-profile { display: flex; align-items: center; gap: 12px; padding-top: 20px; border-top: 1px solid var(--border); }
+        .avatar { width: 36px; height: 36px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; }
+
+        /* Main Interface Panels */
+        main { flex: 1; display: flex; flex-direction: column; background: var(--bg-main); position: relative; }
+        header { height: 70px; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 30px; background: var(--bg-sidebar); }
+        .status-indicator { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; }
+        .status-dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; box-shadow: 0 0 8px #10b981; }
+
+        /* Professional Chat Stream Wrapper */
+        #message-area { flex: 1; padding: 30px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; scroll-behavior: smooth; }
+        .message-row { display: flex; width: 100%; }
+        .message-row.user { justify-content: flex-end; }
+        .message-row.bot { justify-content: flex-start; }
+        
+        .bubble { max-width: 70%; padding: 14px 18px; border-radius: 16px; font-size: 15px; line-height: 1.6; position: relative; animation: fadeInUp 0.25s ease-out forwards; }
+        .user .bubble { background: var(--bubble-user); color: #ffffff; border-bottom-right-radius: 4px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2); }
+        .bot .bubble { background: var(--bubble-bot); color: var(--text-main); border-bottom-left-radius: 4px; border: 1px solid var(--border); }
+        
+        /* Markdown Sub-elements (Lists, Bold Text Formatting inside Bubbles) */
+        .bubble p { margin-bottom: 8px; }
+        .bubble p:last-child { margin-bottom: 0; }
+        .bubble ul, .bubble ol { margin-left: 20px; margin-bottom: 8px; }
+        .bubble li { margin-bottom: 4px; }
+
+        /* Animated Loader Dots */
+        .typing-indicator { display: none; align-items: center; gap: 4px; padding: 14px 22px; background: var(--bubble-bot); border-radius: 16px; border: 1px solid var(--border); width: fit-content; margin-bottom: 10px; }
+        .typing-dot { width: 6px; height: 6px; background: var(--text-muted); border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        /* Footer Chat Input Strip */
+        footer { padding: 20px 30px 30px 30px; background: linear-gradient(180deg, rgba(15,23,42,0) 0%, var(--bg-main) 40%); }
+        .input-wrapper { display: flex; background: var(--bg-sidebar); border: 1px solid var(--border); border-radius: 12px; padding: 8px 12px; align-items: center; transition: all 0.2s ease; }
+        .input-wrapper:focus-within { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15); }
+        .input-wrapper input { flex: 1; background: transparent; border: none; outline: none; color: var(--text-main); padding: 10px; font-size: 15px; }
+        .input-wrapper input::placeholder { color: var(--text-muted); }
+        .input-wrapper button { background: var(--accent); color: white; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.15s ease; }
+        .input-wrapper button:hover { background: var(--accent-hover); }
+
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1.0); } }
+    </style>
+</head>
+<body>
+
+<!-- App Sidebar Dashboard Wrapper -->
+<aside>
+    <div class="top-nav">
+        <div class="brand">
+            <i class="fa-solid fa-dumbbell"></i>
+            <span>FitnessBuddy<span style="color:var(--accent)">.ai</span></span>
+        </div>
+        <nav class="nav-group">
+            <a href="#" class="nav-item active"><i class="fa-solid fa-comments"></i> AI Coach Chat</a>
+            <a href="#" class="nav-item"><i class="fa-solid fa-calendar-days"></i> Workout Routine</a>
+            <a href="#" class="nav-item"><i class="fa-solid fa-apple-whole"></i> Nutrition Plan</a>
+            <a href="#" class="nav-item"><i class="fa-solid fa-chart-line"></i> Progress Tracker</a>
+        </nav>
+    </div>
+    <div class="user-profile">
+        <div class="avatar">U</div>
+        <div>
+            <h4 style="font-size:14px; font-weight:600;">Athlete Workspace</h4>
+            <p style="font-size:12px; color:var(--text-muted)">Premium Account</p>
+        </div>
+    </div>
+</aside>
+
+<!-- Main Workspace Area -->
+<main>
+    <header>
+        <div class="status-indicator">
+            <div class="status-dot"></div>
+            <span>Coach Engine Live</span>
+        </div>
+    </header>
+
+    <!-- Message Feed Display Canvas -->
+    <div id="message-area">
+        <div class="message-row bot">
+            <div class="bubble">Welcome back! I am your AI Fitness Coach. Let's optimize your training, diet, or recovery targets today. What are we aiming to smash next?</div>
+        </div>
+    </div>
+
+    <!-- Inline Typing Loader Anchor -->
+    <div style="padding: 0 30px;">
+        <div class="typing-indicator" id="loader">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+        </div>
+    </div>
+
+    <!-- System Chat Input Console Panel -->
+    <footer>
+        <div class="input-wrapper">
+            <input type="text" id="user-input" placeholder="Ask about macros, routines, or exercises..." onkeypress="if(event.key === 'Enter') sendToAgent()">
+            <button onclick="sendToAgent()"><span>Send</span><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
+    </footer>
+</main>
+
+<script>
+    // Configure markdown engine options for clean spacing
+    marked.setOptions({ gfm: true, breaks: true });
+
+    async function sendToAgent() {
+        const inputField = document.getElementById('user-input');
+        const loader = document.getElementById('loader');
+        const text = inputField.value.trim();
+        if (!text) return;
+
+        // Render Client User UI Bubble
+        addBubble(text, 'user');
+        inputField.value = '';
+
+        // Open up loader indicator 
+        loader.style.display = 'flex';
+        document.getElementById('message-area').scrollTop = document.getElementById('message-area').scrollHeight;
+
+        try {
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: text })
+            });
+            const data = await response.json();
+            
+            // Parse coach output strings safely into native structured elements via marked.js
+            addBubble(data.reply, 'bot', true);
+        } catch (error) {
+            addBubble("System Error: Unable to fetch payload updates from coach engine pipeline.", 'bot');
+        } finally {
+            // Remove visual indicator element
+            loader.style.display = 'none';
+        }
+    }
+
+    function addBubble(msgText, senderClass, isMarkdown = false) {
+        const area = document.getElementById('message-area');
+        
+        const row = document.createElement('div');
+        row.className = `message-row ${senderClass}`;
+        
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        
+        if (isMarkdown) {
+            bubble.innerHTML = marked.parse(msgText);
+        } else {
+            bubble.innerText = msgText;
+        }
+        
+        row.appendChild(bubble);
+        area.appendChild(row);
+        
+        // Instantly sync layout container bounds downward
+        area.scrollTop = area.scrollHeight;
+    }
+</script>
+</body>
+</html>
